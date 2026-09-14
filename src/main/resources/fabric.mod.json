@@ -1,38 +1,29 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "playtimelimiter",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Playtime Limiter",
+	"description": "A lightweight server-side Fabric mod designed to control and restrict player session times, tracking user activity via UUIDs and automatically disconnecting players when their time expires.",
 	"authors": [
-		"Me!"
+		"Progme"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/progmee/",
+		"sources": "https://github.com/progmee/PlaytimeLimiter/"
 	},
-	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"license": "The MIT License",
+	"icon": "assets/playtimelimiter/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
-		],
-		"client": [
-			"com.example.client.ExampleModClient"
+			"com.playtimelimiter.PlaytimeLimiter"
 		]
 	},
-	"mixins": [
-		"modid.mixins.json",
-		{
-			"config": "modid.client.mixins.json",
-			"environment": "client"
-		}
-	],
+	"mixins": [],
 	"depends": {
-		"fabricloader": ">=0.19.5",
-		"minecraft": "~26.2",
-		"java": ">=25",
+		"fabricloader": ">=0.15.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
 		"fabric-api": "*"
 	}
 }
