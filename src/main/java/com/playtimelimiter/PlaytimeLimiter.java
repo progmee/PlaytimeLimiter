@@ -6,14 +6,17 @@ import net.minecraft.util.Identifier; // Util for resources identification
 
 // Implement arguments support for commands
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 
 // Commands hooks support
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.command.ServerCommandSource; // Source of command execution
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text; // Modern library for creation of text messages
 import net.minecraft.command.argument.EntityArgumentType; // Argument for players with auto-completion support
+
+// Player connection lib
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 // Basic minecraft logger
 import org.slf4j.Logger;
@@ -37,12 +40,59 @@ public class PlaytimeLimiter implements ModInitializer {
     // This logger is used to write text to the console and the log file.
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    // Store total ticks for server
+    public static int tickCounter = 0;
+
+    // Save timers and join times in RAM
     public static Map<UUID, Integer> timersRegistry = new HashMap<>();
+    public static Map<UUID, Integer> sessionJoinRegistry = new HashMap<>();
 
     @Override
     // This code runs as soon as Minecraft is in a mod-load-ready state.
     public void onInitialize() {
         LOGGER.info("Mod " + MOD_ID + " initialized successfully!"); // Notify about initilization
+
+        ServerTickEvents.END_SERVER_TICK.register((server) -> {
+            tickCounter++; // Update tick counter each tick
+
+            // Update each second
+            if (tickCounter >= 20) {
+                tickCounter = 0;
+
+                int serverSeconds = server.getTicks() / 20;
+                for (UUID uuid : timersRegistry.keySet()) {
+                    // Ignore offline players
+                    if (!sessionJoinRegistry.containsKey(uuid)) continue; // Use continue, to not stop onInitialize method
+                    ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+
+                    int timerSeconds = timersRegistry.get(uuid);
+                    int sessionJoinSeconds = sessionJoinRegistry.get(uuid);
+
+                    // Check that time left for player
+                    if (serverSeconds - sessionJoinSeconds >= timerSeconds) {
+                        player.networkHandler.disconnect(Text.literal("§cYour playtime limit for this session has expired!"));
+                    }
+                }
+            }
+        });
+
+        // Adds to registry player who joined the server
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            UUID uuid = handler.getPlayer().getUuid(); // Get player uuid, who joined server
+
+            // In minecraft 20 ticks equal to 1 second of virtual time
+            int sessionSeconds = server.getTicks() / 20;
+            sessionJoinRegistry.put(uuid, sessionSeconds);
+        });
+
+        // Remove from registry player who disconnected the server
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            UUID uuid = handler.getPlayer().getUuid(); // Get player uuid, who disconnected server
+
+            if (sessionJoinRegistry.containsKey(uuid)) {
+                sessionJoinRegistry.remove(uuid);
+            }
+        });
 
         // Register /timer command
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
