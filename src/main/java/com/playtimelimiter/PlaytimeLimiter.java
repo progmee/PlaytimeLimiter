@@ -63,14 +63,21 @@ public class PlaytimeLimiter implements ModInitializer {
                 int serverSeconds = server.getTicks() / 20;
                 for (UUID uuid : timersRegistry.keySet()) {
                     // Ignore offline players
-                    if (!sessionJoinRegistry.containsKey(uuid)) continue; // Use continue, to not stop onInitialize method
+                    if (!sessionJoinRegistry.containsKey(uuid)) continue;
                     ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+                    if (player == null) continue; // Safety check if player is missing
 
                     int timerSeconds = timersRegistry.get(uuid);
                     int sessionJoinSeconds = sessionJoinRegistry.get(uuid);
 
+                    int elapsedTime = serverSeconds - sessionJoinSeconds; // Save elapsed time for a player
+                    int remainingTime = timerSeconds - elapsedTime; // Save remaining time for a player
+
+                    // Send notification to player with remaining time and total session limit
+                    PlaytimeNotifier.displayNotification(player, remainingTime, timerSeconds);
+
                     // Check that time left for player
-                    if (serverSeconds - sessionJoinSeconds >= timerSeconds) {
+                    if (elapsedTime >= timerSeconds) {
                         player.networkHandler.disconnect(Text.literal("§cYour playtime limit for this session has expired!"));
                     }
                 }
@@ -115,6 +122,10 @@ public class PlaytimeLimiter implements ModInitializer {
                             
                             // Add this data to registry
                             timersRegistry.put(playerUuid, timeSeconds);
+
+                            // Reset session join time for this player using source.getServer() and playerUuid
+                            int sessionSeconds = source.getServer().getTicks() / 20;
+                            sessionJoinRegistry.put(playerUuid, sessionSeconds);
 
                             // Notify about created timer
                             source.sendMessage(Text.literal("§aCreated timer to player " + playerName + " for " + timeSeconds + " seconds."));

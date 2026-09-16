@@ -20,6 +20,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Handles configuration loading and saving for player playtime limits.
+ * Serializes player UUIDs and their respective limits into a JSON file.
+ */
 public class TimerConfig {
     // Create GSON object with readable format
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -30,6 +34,12 @@ public class TimerConfig {
         .resolve(PlaytimeLimiter.MOD_ID)
         .resolve(CONFIG_NAME);
 
+    /**
+     * Saves the current active timers registry to the JSON configuration file.
+     * Converts player UUIDs to strings for proper JSON serialization.
+     * 
+     * @param timersRegistry The map containing player UUIDs and their allowed playtime in seconds
+     */
     public static void save(Map<UUID, Integer> timersRegistry) {
         try {
             // Create parent directory ./config/{MOD_ID}, if folder not exists
@@ -48,6 +58,12 @@ public class TimerConfig {
         }
     }
 
+    /**
+     * Loads the timers registry from the JSON configuration file.
+     * Converts serialized string keys back into UUID objects.
+     * 
+     * @return A map of player UUIDs and their playtime limits, or an empty map if loading fails or the file doesn't exist
+     */
     public static Map<UUID, Integer> load() {
         Map<UUID, Integer> timersRegistry = new HashMap<>();
 
