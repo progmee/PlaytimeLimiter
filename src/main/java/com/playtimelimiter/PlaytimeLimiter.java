@@ -44,13 +44,14 @@ public class PlaytimeLimiter implements ModInitializer {
     public static int tickCounter = 0;
 
     // Save timers and join times in RAM
-    public static Map<UUID, Integer> timersRegistry = new HashMap<>();
+    public static Map<UUID, Integer> timersRegistry;
     public static Map<UUID, Integer> sessionJoinRegistry = new HashMap<>();
 
     @Override
     // This code runs as soon as Minecraft is in a mod-load-ready state.
     public void onInitialize() {
         LOGGER.info("Mod " + MOD_ID + " initialized successfully!"); // Notify about initilization
+        timersRegistry = TimerConfig.load(); // Load config from disk
 
         ServerTickEvents.END_SERVER_TICK.register((server) -> {
             tickCounter++; // Update tick counter each tick
@@ -117,6 +118,9 @@ public class PlaytimeLimiter implements ModInitializer {
 
                             // Notify about created timer
                             source.sendMessage(Text.literal("§aCreated timer to player " + playerName + " for " + timeSeconds + " seconds."));
+                            
+                            // Save changes on disk when adding a new player in registry
+                            TimerConfig.save(timersRegistry);
                             return 1; // Command successed
                         })
                     )))
@@ -137,6 +141,9 @@ public class PlaytimeLimiter implements ModInitializer {
                             if (timersRegistry.containsKey(playerUuid)) {
                                 timersRegistry.remove(playerUuid);
                                 source.sendMessage(Text.literal("§eRemoved timer from player " + playerName + "."));
+
+                                // Save changes on disk when removing a player from registry
+                                TimerConfig.save(timersRegistry);
                             } else {
                                 source.sendMessage(Text.literal("§cTimer not attached to player " + playerName + "."));
                                 return 0;
