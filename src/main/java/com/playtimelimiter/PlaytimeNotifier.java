@@ -10,6 +10,10 @@ import net.minecraft.util.Formatting;
 // Title and subtitle support
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 
+/**
+ * Handles visual feedback notifications for players via Action Bar and center Screen Titles.
+ * Supports direct text formatting and dynamic color scaling based on remaining time.
+ */
 public class PlaytimeNotifier {
 
     /**
@@ -39,26 +43,39 @@ public class PlaytimeNotifier {
         // Send a persistent timer update to the action bar (above inventory)
         player.sendMessage(Text.literal(timeFormatted).styled(style -> style.withColor(barColor)), true);
 
-        // Trigger major milestone alerts in the center of the screen
+        // Trigger major milestone alerts in the center of the screen using Text.literal
         if (timeSeconds == 60) {
-            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("§f1 minute left!")));
+            player.networkHandler.sendPacket(new TitleS2CPacket(
+                Text.literal("1 minute left!").styled(style -> style.withColor(Formatting.WHITE))
+            ));
         }
         else if (timeSeconds == 15) {
-            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("§e15 seconds left!")));
+            player.networkHandler.sendPacket(new TitleS2CPacket(
+                Text.literal("15 seconds left!").styled(style -> style.withColor(Formatting.YELLOW))
+            ));
         }
         else if (timeSeconds > 0 && timeSeconds <= 10) {
-            // Intense countdown from 10 to 1 second (yellow, turning red in the last 3 seconds)
-            String color = timeSeconds <= 3 ? "§c§l" : "§e§l";
-            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal(color + timeSeconds + " seconds left!")));
+            // Intense countdown from 10 to 1 second (yellow, turning red with bold in the last 3 seconds)
+            Formatting color = timeSeconds <= 3 ? Formatting.RED : Formatting.YELLOW;
+            boolean bold = timeSeconds <= 3;
+            
+            Text countdownText = Text.literal(timeSeconds + " seconds left!")
+                .styled(style -> style.withColor(color).withBold(bold));
+                
+            player.networkHandler.sendPacket(new TitleS2CPacket(countdownText));
         }
         else if (timeSeconds <= 0) {
-            player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("§4§lTime is up.")));
+            Text timeIsUpText = Text.literal("Time is up.")
+                .styled(style -> style.withColor(Formatting.DARK_RED).withBold(true));
+            player.networkHandler.sendPacket(new TitleS2CPacket(timeIsUpText));
         }
     }
 
     /**
      * Formats seconds into HH:MM:SS or MM:SS depending on the duration.
-     * @param timeSeconds    Remaining time in seconds
+     * 
+     * @param timeSeconds Remaining time in seconds
+     * @return Formatted time string
      */
     private static String formatTime(int timeSeconds) {
         // Prevent negative values
